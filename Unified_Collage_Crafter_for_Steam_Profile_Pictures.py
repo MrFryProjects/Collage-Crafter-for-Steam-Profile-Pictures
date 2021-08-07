@@ -1,47 +1,53 @@
+#Steam profile pictures use hashing for image name/url
+import requests
 import urllib.request
 import json
+import math
 import time
+import os
 
 #Path to working directory
-filePath = ''
+####################filePath = ''
+## WARNING: WILL NOT WORK, WORKING DIR IS FILE LOCATION
 
 #Depth to search. 1: Friends of Seed, 2: Friends of friends, 3: Friends of friends of friends (recommend no number higher than 3)
-searchDepth = 1
+searchDepth = 2
 
 #Hard-limit number of API requests in case searchDepth is entered incorrectly
-queryLimit = 3
-
-#Your steam API key here
-with open(filePath+'api.txt', 'r') as file: apiKey = file.read()
-#apiKey = ''
-
-#SteamID for first account to seed search
-with open(filePath+'seed.txt','r') as file: SteamID = file.read()
-#seedID = ''
-
-
+queryLimit = 44
 
 class SteamCollage:
-    def __init__(self, apiKey, filePath, seedID, searchDepth, queryLimit):
-        self.apiKey = apiKey
-        self.filePath = filePath
-        self.seedID = seedID
+    def __init__(self, searchDepth, queryLimit):
+        
+        self.filePath = os.path.dirname(os.path.realpath(__file__))
         self.searchDepth = searchDepth
         self.queryLimit = queryLimit
         self.fileName = ''
 
-    def APIpull(self, steamID):
-        return urllib.request.urlopen('https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key='+apiKey+'&steamid='+steamID).read().decode('utf8')
+        self.downloadPath = os.path.join(self.filePath, "images")
+        if not os.path.exists(self.downloadPath):
+            os.mkdir(self.downloadPath)
 
-    def Spider(self, seed=seedID, depth=searchDepth):
-        self.fileName = (filePath+r'FriendsList_Depth_'+str(depth)+r'.txt')
+        #Your steam API key
+        with open(self.filePath+'\\api.txt', 'r') as file: 
+            self.apiKey = file.read()
+
+        #SteamID for first account to seed search
+        with open(self.filePath+'\\seed.txt','r') as file: 
+            self.seedID = file.read()
+
+    def APIpull(self, steamID):
+        return urllib.request.urlopen('https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key='+self.apiKey+'&steamid='+steamID).read().decode('utf8')
+
+    def Spider(self):
+        self.fileName = (self.filePath+r'\\FriendsList_Depth_'+str(self.searchDepth)+r'.txt')
         print(self.fileName)
 
-        holdA = [seed]
+        holdA = [self.seedID]
         holdB = []
         count = 0
 
-        for i in range(depth):
+        for i in range(self.searchDepth):
             for j in holdA:
                 time.sleep(0.1)
                 count += 1
@@ -113,81 +119,140 @@ class SteamCollage:
 
 
 
-    #def ImageDL():
-        #filePath = ''
-        #fileName = ''
+    def ImageDL(self):
 
-        #dataOld = ""
-        #dataNew = ''
+        massive = 100
 
-        #with open(filePath + fileName, 'r') as file:
-        #    dataOld = file.read()
+        fileContent = []
+        steamIDs = ''
 
-        #dataNew = dataOld.replace("'", '"')
+        history = ["https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg", ""]
 
-        #with open(filePath + 'FIX_' + fileName, 'w') as file:
-        #    file.write(dataNew)
+        def apiPull2(steamID):
+            return urllib.request.urlopen('https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key='+self.apiKey+'&steamids='+steamID).read().decode('utf8')
+
+        def imgDL(url):
+            r = requests.get(url, allow_redirects=True)
+            with open(self.downloadPath + '\\' + steamID_ + '.jpg', 'wb') as file:
+                file.write(r.content)
+
+        with open(self.fileName) as file:
+            fileContent = json.load(file)
+
+        print(len(fileContent))
+
+        for i in range(int(math.floor(len(fileContent)/massive))):
+            if len(fileContent)%massive != 0:
+                for i in range(len(fileContent)%massive):
+                    steamIDs += (str(fileContent.pop(0)) + '+')
+                steamIDs = steamIDs[0:-1] #???
+                page = apiPull2(steamIDs)
+                pull = json.loads(page)
+                for i in (pull['response']['players']):
+                    steamID_ = i['steamid']
+                    if i['avatar'] not in history:
+                        imgDL(i['avatar'])
+                        history.append(i['avatar'])
+            steamIDs = ''
+            for i in range(massive):
+                steamIDs += (str(fileContent.pop(0)) + '+')
+    
+            steamIDs = steamIDs[0:-1] #???
+            page = apiPull2(steamIDs)
+            pull = json.loads(page)
+            for i in (pull['response']['players']):
+                steamID_ = i['steamid']
+                if i['avatar'] not in history:
+                    imgDL(i['avatar'])
+                    history.append(i['avatar'])
 
     #def ImageCombine():
-        #import urllib.request
-        #import requests
-        #import json
+        #from PIL import Image
+        #import glob
         #import math
 
         #filePath = '\\Desktop\\'
-        #fileName = 'UNIQUE_SORTED_FIX_FriendsDepth2.json'
         #downloadPath = '\\Desktop\\steamIcons\\'
-        #API = ''
-        #massive = 100
 
-        #fileContent = []
-        #steamIDs = ''
+        #def imageLine():
+        #    x = glob.glob(downloadPath+'*.jpg')
+        #    print(len(x))
+        #    a = (int(math.floor(len(x)/120)))
+        #    b = (int(len(x)%120))
+        #    for n in range(a):
+        #        x_offset = 0
+        #        images = []
+        #        lineImage = Image.new('RGB', (120*32, 32))
+        #        for i in range(120):
+        #            images.append(Image.open(x.pop(0)))
+        #        for j in images:
+        #            lineImage.paste(j, (x_offset,0))
+        #            x_offset += j.size[0]
+        #        lineImage.save(filePath+'inc\\_'+str(n)+'_incremental.jpg')
+        #    x_offset = 0
+        #    images = []
+        #    lineImage = Image.new('RGB', (b*32, 32))
+        #    for i in range(b):
+        #        images.append(Image.open(x.pop(0)))
+        #        print(len(x))
+        #    for j in images:
+        #        lineImage.paste(j, (x_offset,0))
+        #        x_offset += j.size[0]
+        #        print(len(x))
+        #    lineImage.save(filePath+'inc\\_'+str(a)+'_incremental.jpg')
 
-        #history = ["https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg", ""]
+        ##def lineStack():
+        ##    y = glob.glob(filePath+'inc\\'+'*_incremental.jpg')
+        ##    print(y)
+        ##    stackImage = Image.new('RGB', (120*32, len(y)*32))
+        ##    images = []
+        ##    y_offset = 0
+        ##    for i in range(len(y)):
+        ##        images.append(Image.open(y.pop(0)))
+        ##        print(len(y))
+        ##    for i in images:
+        ##        stackImage.paste(i, (0,y_offset))
+        ##        y_offset += 32
+        ##    stackImage.save(filePath+'inc\\Collage.jpg')
 
-        #def apiPull(steamID):
-        #    return urllib.request.urlopen('https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key='+API+'&steamids='+steamID).read().decode('utf8')
+        #def stackStack(number):
+        #    y = glob.glob(filePath+'inc\\'+str(number)+'\\'+'*_incremental.jpg')
+        #    print(len(y))
+        #    stackImage = Image.new('RGB', (120*32, len(y)*32))
+        #    images = []
+        #    y_offset = 0
+        #    for i in range(len(y)):
+        #        images.append(Image.open(y.pop(0)))
+        #        print(len(y))
+        #    for i in images:
+        #        stackImage.paste(i, (0,y_offset))
+        #        y_offset += 32
+        #    stackImage.save(filePath+'inc\\'+str(number)+'.jpg')
 
-        #def imgDL(url):
-        #    r = requests.get(url, allow_redirects=True)
-        #    with open(downloadPath + steamID_ + '.jpg', 'wb') as file:
-        #        file.write(r.content)
+        #def collage():
+        #    z = glob.glob(filePath+'inc\\'+'*.jpg')
+        #    images = [Image.open(i) for i in z]
+        #    widths, heights = zip(*(j.size for j in images))
+        #    cImage = Image.new('RGB', (max(widths), sum(heights)))
+        #    y_offset = 0
+        #    count = 0
+        #    for n in images:
+        #        cImage.paste(n, (0,y_offset))
+        #        y_offset += heights[count]
+        #        count += 1
+        #    cImage.save(filePath+'inc\\Collage.jpg')
 
-        #with open(filePath + fileName) as file:
-        #    fileContent = json.load(file)
+        ##imageLine()
+        ##for i in range(5):
+        ##    stackStack(i)
 
-        #print(len(fileContent))
-
-        #for i in range(int(math.floor(len(fileContent)/massive))):
-        #    if len(fileContent)%massive != 0:
-        #        for i in range(len(fileContent)%massive):
-        #            steamIDs += (str(fileContent.pop(0)) + '+')
-        #        steamIDs = steamIDs[0:-1]
-        #        page = apiPull(steamIDs)
-        #        pull = json.loads(page)
-        #        for i in (pull['response']['players']):
-        #            steamID_ = i['steamid']
-        #            if i['avatar'] not in history:
-        #                imgDL(i['avatar'])
-        #                history.append(i['avatar'])
-        #    steamIDs = ''
-        #    for i in range(massive):
-        #        steamIDs += (str(fileContent.pop(0)) + '+')
-    
-        #    steamIDs = steamIDs[0:-1]
-        #    page = apiPull(steamIDs)
-        #    pull = json.loads(page)
-        #    for i in (pull['response']['players']):
-        #        steamID_ = i['steamid']
-        #        if i['avatar'] not in history:
-        #            imgDL(i['avatar'])
-        #            history.append(i['avatar'])
-
+        #collage()
 
 
 if __name__ == '__main__':
-    SC = SteamCollage(apiKey, filePath, seedID, searchDepth, queryLimit)
+    SC = SteamCollage(searchDepth, queryLimit)
     SC.Spider()
-#    SC.ListCombine()
-#    SC.Sorting()
-#    SC.UniqueID()
+    SC.ListCombine()
+    SC.Sorting()
+    SC.UniqueID()
+    SC.ImageDL()
