@@ -223,12 +223,13 @@ class SteamCollage:
             lineImage = Image.new('RGB', (remainder*self.avatarSize, self.avatarSize))
             print(remainder)
             print(len(imageGlob))
-            for i in range(remainder):
-                images.append(Image.open(imageGlob.pop(0)))
-            for j in images:
-                lineImage.paste(j, (x_offset, 0))
-                x_offset += j.size[0]
-            lineImage.save(os.path.join(self.linePath, (str(quotient)+'.jpg')))
+            if remainder > 0:
+                for i in range(remainder):
+                    images.append(Image.open(imageGlob.pop(0)))
+                for j in images:
+                    lineImage.paste(j, (x_offset, 0))
+                    x_offset += j.size[0]
+                lineImage.save(os.path.join(self.linePath, (str(quotient)+'.jpg')))  ##issue
 
 
         def lineStack(self):
