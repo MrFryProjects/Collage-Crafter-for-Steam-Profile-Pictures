@@ -1,10 +1,9 @@
 #improve by staging image downloads per steamID so that only enough images to fill collage resolution downloaded
+
 #improve by allowing pfp image size choices
 
-#figure out why lines are being stacked with the last one not on the bottom
 #add an image integrity verify
-#limit image height by y value
-#limit image download by image size constraints
+
 #option to organize collage avatars by color
 
 import requests
@@ -201,6 +200,9 @@ class SteamCollage:
         def imageLine(self):
             imageGlob = glob.glob(os.path.join(self.downloadPath, '*.jpg'))
             imageGlobLen = len(imageGlob)
+            if imageGlobLen*(self.avatarSize**2) > self.res_x*self.res_y:
+                imageGlob = imageGlob[0:int(self.res_x*self.res_y/(self.avatarSize**2))]
+                imageGlobLen = len(imageGlob)
             quotient = (int(math.floor(imageGlobLen/(self.res_x/self.avatarSize))))
             print(quotient)
             
@@ -256,7 +258,7 @@ class SteamCollage:
             stackImage.save(os.path.join(self.stackPath, 'stack.jpg'))
 
         imageLine(self)
-        #lineStack(self)
+        lineStack(self)
 
         #calculate images per row and column by resolution
         #glob of all images
@@ -266,7 +268,7 @@ class SteamCollage:
         #glob stacks and combine
 
 if __name__ == '__main__':
-    SC = SteamCollage(21*32, 13*32, searchDepth, queryLimit, avatarSelect)
+    SC = SteamCollage(40*32, 23*32, searchDepth, queryLimit, avatarSelect)
     #SC.Spider()
     #SC.ListCombine()
     #SC.Sorting()
