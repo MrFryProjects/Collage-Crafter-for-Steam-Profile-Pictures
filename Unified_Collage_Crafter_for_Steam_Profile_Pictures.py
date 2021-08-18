@@ -1,32 +1,56 @@
-#Steam profile pictures use hashing for image name/url
+#improve by staging image downloads per steamID so that only enough images to fill collage resolution downloaded
+#improve by allowing pfp image size choices
+
+#figure out why lines are being stacked with the last one not on the bottom
+#add an image integrity verify
+#limit image height by y value
+#limit image download by image size constraints
+#option to organize collage avatars by color
+
 import requests
 import urllib.request
 import json
 import math
 import time
 import os
+import glob
+from PIL import Image
 
 #Path to working directory
 ####################filePath = ''
 ## WARNING: WILL NOT WORK, WORKING DIR IS FILE LOCATION
 
 #Depth to search. 1: Friends of Seed, 2: Friends of friends, 3: Friends of friends of friends (recommend no number higher than 3)
-searchDepth = 2
+searchDepth = 1
 
 #Hard-limit number of API requests in case searchDepth is entered incorrectly
-queryLimit = 44
+queryLimit = 1000
+
+avatarSelect = 1
 
 class SteamCollage:
-    def __init__(self, searchDepth, queryLimit):
-        
+    def __init__(self, res_x, res_y, searchDepth, queryLimit, avatarSelect):
+        self.res_x = int(res_x)
+        self.res_y = int(res_y)
         self.filePath = os.path.dirname(os.path.realpath(__file__))
-        self.searchDepth = searchDepth
-        self.queryLimit = queryLimit
+        self.searchDepth = int(searchDepth)
+        self.queryLimit = int(queryLimit)
         self.fileName = ''
+
+        if avatarSelect == 1: self.avatar = 'avatar'; self.avatarSize = 32;
+        if avatarSelect == 2: self.avatar = 'avatarmedium'; self.avatarSize = 64;
 
         self.downloadPath = os.path.join(self.filePath, "images")
         if not os.path.exists(self.downloadPath):
             os.mkdir(self.downloadPath)
+
+        self.linePath = os.path.join(self.downloadPath, "lines")
+        if not os.path.exists(self.linePath):
+            os.mkdir(self.linePath)
+
+        self.stackPath = os.path.join(self.downloadPath, "stack")
+        if not os.path.exists(self.stackPath):
+            os.mkdir(self.stackPath)
 
         #Your steam API key
         with open(self.filePath+'\\api.txt', 'r') as file: 
@@ -35,6 +59,8 @@ class SteamCollage:
         #SteamID for first account to seed search
         with open(self.filePath+'\\seed.txt','r') as file: 
             self.seedID = file.read()
+
+
 
     def APIpull(self, steamID):
         return urllib.request.urlopen('https://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key='+self.apiKey+'&steamid='+steamID).read().decode('utf8')
@@ -82,10 +108,7 @@ class SteamCollage:
         with open(self.fileName,'r') as file:
             dataUnsorted = json.load(file)
 
-        #print(type(dataUnsorted))
-
         dataSorted = sorted(dataUnsorted)
-        #print(type(dataSorted))
 
         self.fileName = self.fileName+'SORTED_.txt'
 
@@ -129,7 +152,7 @@ class SteamCollage:
         history = ["https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb.jpg", ""]
 
         def apiPull2(steamID):
-            return urllib.request.urlopen('https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key='+self.apiKey+'&steamids='+steamID).read().decode('utf8')
+            return urllib.request.urlopen('https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key='+self.apiKey+'&steamids='+steamID).read().decode('utf8') #use + between steamID to pull multiple steam IDs
 
         def imgDL(url):
             r = requests.get(url, allow_redirects=True)
@@ -138,8 +161,6 @@ class SteamCollage:
 
         with open(self.fileName) as file:
             fileContent = json.load(file)
-
-        print(len(fileContent))
 
         for i in range(int(math.floor(len(fileContent)/massive))):
             if len(fileContent)%massive != 0:
@@ -166,93 +187,88 @@ class SteamCollage:
                     imgDL(i['avatar'])
                     history.append(i['avatar'])
 
-    #def ImageCombine():
-        #from PIL import Image
-        #import glob
-        #import math
+    #img size 32x32, 120*32 = 1920*2
 
-        #filePath = '\\Desktop\\'
-        #downloadPath = '\\Desktop\\steamIcons\\'
+    def ImageCombine2(self):
 
-        #def imageLine():
-        #    x = glob.glob(downloadPath+'*.jpg')
-        #    print(len(x))
-        #    a = (int(math.floor(len(x)/120)))
-        #    b = (int(len(x)%120))
-        #    for n in range(a):
-        #        x_offset = 0
-        #        images = []
-        #        lineImage = Image.new('RGB', (120*32, 32))
-        #        for i in range(120):
-        #            images.append(Image.open(x.pop(0)))
-        #        for j in images:
-        #            lineImage.paste(j, (x_offset,0))
-        #            x_offset += j.size[0]
-        #        lineImage.save(filePath+'inc\\_'+str(n)+'_incremental.jpg')
-        #    x_offset = 0
-        #    images = []
-        #    lineImage = Image.new('RGB', (b*32, 32))
-        #    for i in range(b):
-        #        images.append(Image.open(x.pop(0)))
-        #        print(len(x))
-        #    for j in images:
-        #        lineImage.paste(j, (x_offset,0))
-        #        x_offset += j.size[0]
-        #        print(len(x))
-        #    lineImage.save(filePath+'inc\\_'+str(a)+'_incremental.jpg')
+        #create lines
+            # glob of images
+            # int width of images
+            # int length of glob
+            # int x/y resolution
+            # 
 
-        ##def lineStack():
-        ##    y = glob.glob(filePath+'inc\\'+'*_incremental.jpg')
-        ##    print(y)
-        ##    stackImage = Image.new('RGB', (120*32, len(y)*32))
-        ##    images = []
-        ##    y_offset = 0
-        ##    for i in range(len(y)):
-        ##        images.append(Image.open(y.pop(0)))
-        ##        print(len(y))
-        ##    for i in images:
-        ##        stackImage.paste(i, (0,y_offset))
-        ##        y_offset += 32
-        ##    stackImage.save(filePath+'inc\\Collage.jpg')
+        def imageLine(self):
+            imageGlob = glob.glob(os.path.join(self.downloadPath, '*.jpg'))
+            imageGlobLen = len(imageGlob)
+            quotient = (int(math.floor(imageGlobLen/(self.res_x/self.avatarSize))))
+            print(quotient)
+            
+            remainder = (int(imageGlobLen%(self.res_x/self.avatarSize)))
+            print(remainder)
 
-        #def stackStack(number):
-        #    y = glob.glob(filePath+'inc\\'+str(number)+'\\'+'*_incremental.jpg')
-        #    print(len(y))
-        #    stackImage = Image.new('RGB', (120*32, len(y)*32))
-        #    images = []
-        #    y_offset = 0
-        #    for i in range(len(y)):
-        #        images.append(Image.open(y.pop(0)))
-        #        print(len(y))
-        #    for i in images:
-        #        stackImage.paste(i, (0,y_offset))
-        #        y_offset += 32
-        #    stackImage.save(filePath+'inc\\'+str(number)+'.jpg')
+            for n in range(quotient):
+                x_offset = 0
+                images = []
+                lineImage = Image.new('RGB', (self.res_x, self.avatarSize))
+                for i in range(int(self.res_x/self.avatarSize)):
+                    images.append(Image.open(imageGlob.pop(0)))
+                for j in images:
+                    lineImage.paste(j, (x_offset, 0))
+                    x_offset += self.avatarSize
+                lineImage.save(os.path.join(self.linePath, (str(n)+'.jpg'))) #self.linePath
 
-        #def collage():
-        #    z = glob.glob(filePath+'inc\\'+'*.jpg')
-        #    images = [Image.open(i) for i in z]
-        #    widths, heights = zip(*(j.size for j in images))
-        #    cImage = Image.new('RGB', (max(widths), sum(heights)))
-        #    y_offset = 0
-        #    count = 0
-        #    for n in images:
-        #        cImage.paste(n, (0,y_offset))
-        #        y_offset += heights[count]
-        #        count += 1
-        #    cImage.save(filePath+'inc\\Collage.jpg')
+            x_offset = 0
+            images = []
+            lineImage = Image.new('RGB', (remainder*self.avatarSize, self.avatarSize))
+            print(remainder)
+            print(len(imageGlob))
+            for i in range(remainder):
+                images.append(Image.open(imageGlob.pop(0)))
+            for j in images:
+                lineImage.paste(j, (x_offset, 0))
+                x_offset += j.size[0]
+            lineImage.save(os.path.join(self.linePath, (str(quotient)+'.jpg')))
 
-        ##imageLine()
-        ##for i in range(5):
-        ##    stackStack(i)
 
-        #collage()
+        def lineStack(self):
+            lineGlob = sorted(glob.glob(os.path.join(self.linePath, '*.jpg')), key=len)
+            print(lineGlob)
+            lineGlobLen = len(lineGlob)
+            images = []
+            y_offset = 0
 
+
+            if (lineGlobLen*self.avatarSize) <= self.res_y:
+                stackImage = Image.new('RGB', (self.res_x, lineGlobLen*self.avatarSize))
+            elif (lineGlobLen*self.avatarSize) > self.res_y:
+                lineGlob = lineGlob[0:int((self.res_x/self.avatarSize)*(self.res_y/self.avatarSize))]
+                stackImage = Image.new('RGB', (self.res_x, self.res_y))
+
+
+
+            for i in range(len(lineGlob)):
+                images.append(Image.open(lineGlob.pop(0)))
+            for i in images:
+                stackImage.paste(i, (0,y_offset))
+                y_offset += self.avatarSize
+            stackImage.save(os.path.join(self.stackPath, 'stack.jpg'))
+
+        imageLine(self)
+        #lineStack(self)
+
+        #calculate images per row and column by resolution
+        #glob of all images
+        #slice glob by number of images needed
+        #pop glob and put images in each spot on row
+        #glob rows and combine stacks
+        #glob stacks and combine
 
 if __name__ == '__main__':
-    SC = SteamCollage(searchDepth, queryLimit)
-    SC.Spider()
-    SC.ListCombine()
-    SC.Sorting()
-    SC.UniqueID()
-    SC.ImageDL()
+    SC = SteamCollage(21*32, 13*32, searchDepth, queryLimit, avatarSelect)
+    #SC.Spider()
+    #SC.ListCombine()
+    #SC.Sorting()
+    #SC.UniqueID()
+    #SC.ImageDL()
+    SC.ImageCombine2()
