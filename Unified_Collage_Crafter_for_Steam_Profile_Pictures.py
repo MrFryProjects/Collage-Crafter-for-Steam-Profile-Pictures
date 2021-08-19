@@ -1,10 +1,10 @@
+#improve image download by downloading multiple images at once
+
 #improve by staging image downloads per steamID so that only enough images to fill collage resolution downloaded
 
 #improve by allowing pfp image size choices
 
 #add an image integrity verify
-
-#option to organize collage avatars by color
 
 import requests
 import urllib.request
@@ -14,18 +14,6 @@ import time
 import os
 import glob
 from PIL import Image
-
-#Path to working directory
-####################filePath = ''
-## WARNING: WILL NOT WORK, WORKING DIR IS FILE LOCATION
-
-#Depth to search. 1: Friends of Seed, 2: Friends of friends, 3: Friends of friends of friends (recommend no number higher than 3)
-searchDepth = 1
-
-#Hard-limit number of API requests in case searchDepth is entered incorrectly
-queryLimit = 1000
-
-avatarSelect = 1
 
 class SteamCollage:
     def __init__(self, res_x, res_y, searchDepth, queryLimit, avatarSelect):
@@ -266,6 +254,16 @@ class SteamCollage:
         #pop glob and put images in each spot on row
         #glob rows and combine stacks
         #glob stacks and combine
+
+
+#Depth to search. 1: Friends of Seed, 2: Friends of friends, 3: Friends of friends of friends (recommend no number higher than 3)
+searchDepth = 1
+
+#Hard-limit number of API requests in case searchDepth is entered incorrectly
+queryLimit = 1000
+
+avatarSelect = 1
+
 
 if __name__ == '__main__':
     SC = SteamCollage(40*32, 23*32, searchDepth, queryLimit, avatarSelect)
